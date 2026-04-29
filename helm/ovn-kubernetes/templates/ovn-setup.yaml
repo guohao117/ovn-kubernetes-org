@@ -112,14 +112,19 @@ spec:
     - "PodNetwork"
 {{- end }}
 
-{{- if (and .Values.global.dockerConfigSecret .Values.global.dockerConfigSecret.create) }}
+{{- with .Values.global.dockerConfigSecret }}
+{{- if .create }}
+{{- $imagePullSecretName := required "global.imagePullSecretName is required when dockerConfigSecret.create=true" $.Values.global.imagePullSecretName -}}
+{{- $registry := required "dockerConfigSecret.registry is required when dockerConfigSecret.create=true" .registry -}}
+{{- $auth := required "dockerConfigSecret.auth is required when dockerConfigSecret.create=true" .auth -}}
 ---
 apiVersion: v1
-type: kubernetes.io/dockerconfigjson
 kind: Secret
+type: kubernetes.io/dockerconfigjson
 metadata:
-  namespace: {{ .Values.global.namespace }}
-  name: {{ .Values.global.imagePullSecretName }}
+  namespace: {{ $.Values.global.namespace }}
+  name: {{ $imagePullSecretName }}
 data:
-  .dockerconfigjson: {{ include "dockerconfigjson" .Values.global.dockerConfigSecret | b64enc }}
+  .dockerconfigjson: {{ include "dockerconfigjson" (dict "registry" $registry "auth" $auth) | b64enc }}
+{{- end }}
 {{- end }}
